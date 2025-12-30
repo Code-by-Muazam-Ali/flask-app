@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Login — Student App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}" />
+</head>
+<body>
+  <main class="auth-page">
+    <section class="auth-card" role="region" aria-labelledby="loginHeading">
+      <h1 id="loginHeading">Sign in</h1>
+
+      <div aria-live="polite" class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
+
+      <form method="post" action="{{ url_for('login') }}" class="auth-form" autocomplete="on" novalidate>
+        {{ form.hidden_tag() }}
+
+        <label for="username">{{ form.username.label.text }}</label>
+        {{ form.username(id='username', class_='form-input', maxlength='50', autocomplete='username', autofocus=True, required=True) }}
+        {% if form.username.errors %}
+          <div class="field-error">{{ form.username.errors[0] }}</div>
+        {% endif %}
+
+        <label for="password">{{ form.password.label.text }}</label>
+        {{ form.password(id='password', class_='form-input', minlength='6', autocomplete='current-password', required=True) }}
+        <div class="password-row">
+          <button type="button" class="btn-toggle" id="togglePassword" aria-pressed="false">Show</button>
+        </div>
+        {% if form.password.errors %}
+          <div class="field-error">{{ form.password.errors[0] }}</div>
+        {% endif %}
+
+        <div class="form-actions">
+          {{ form.submit(class_='btn primary', type='submit') }}
+        </div>
+      </form>
+
+      <p class="aux-links">Don't have an account? <a href="{{ url_for('register') }}" rel="noopener">Register</a></p>
+    </section>
+  </main>
+
+  <script>
+    // Small, local-only password toggle (no external libs) — keeps behavior client-side only
+    (function () {
+      const toggle = document.getElementById('togglePassword');
+      const pwd = document.getElementById('password');
+      if (!toggle || !pwd) return;
+      toggle.addEventListener('click', function () {
+        const isPwd = pwd.type === 'password';
+        pwd.type = isPwd ? 'text' : 'password';
+        this.textContent = isPwd ? 'Hide' : 'Show';
+        this.setAttribute('aria-pressed', String(!isPwd));
+      });
+    })();
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+</head>
+<body>
+    <h2>Login</h2>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        {{ form.username.label }} {{ form.username() }} <br>
+        {{ form.password.label }} {{ form.password() }} <br>
+        {{ form.submit() }}
+    </form>
+    <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <p>{{ message }}</p>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+</body>
+</html>

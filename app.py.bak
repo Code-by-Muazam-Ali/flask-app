@@ -1,0 +1,111 @@
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask_sqlalchemy import SQLAlchemy
+from forms import StudentForm, RegistrationForm, LoginForm
+from flask_bcrypt import Bcrypt
+
+# Initialize app
+app = Flask(__name__)
+app.config['SECRET_KEY'] = '5f0c1a87d57e99d9b1c42aa8b706a3b2'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///firstapp.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.permanent_session_lifetime = 3600  # 1 hour
+
+bcrypt = Bcrypt(app)
+db = SQLAlchemy(app)
+
+# User model
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), nullable=False, unique=True)
+    password = db.Column(db.String(200), nullable=False)
+
+    def set_password(self, password):
+        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
+
+    def check_password(self, password):
+        return bcrypt.check_password_hash(self.password, password)
+
+# Student model
+class Student(db.Model):
+    sno = db.Column(db.Integer, primary_key=True)
+    firstname = db.Column(db.String(100), nullable=False)
+    lastname = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    phone = db.Column(db.String(20), nullable=False)
+
+# Registration route
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        existing_user = User.query.filter_by(username=form.username.data).first()
+        if existing_user:
+            flash("Username already exists", "danger")
+            return redirect(url_for('register'))
+        new_user = User(username=form.username.data)
+        new_user.set_password(form.password.data)
+        db.session.add(new_user)
+        db.session.commit()
+        flash("Registration successful! Please log in.", "success")
+        return redirect(url_for('login'))
+    return render_template('register.html', form=form)
+
+# Login route
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user and user.check_password(form.password.data):
+            session['username'] = user.username
+            flash("Logged in successfully!", "success")
+            return redirect(url_for('hello_world'))
+        else:
+            flash("Invalid username or password", "danger")
+    return render_template('login.html', form=form)
+
+# Logout route
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    flash("Logged out successfully", "info")
+    return redirect(url_for('login'))
+
+# Student route (home page)
+@app.route('/', methods=['GET', 'POST'])
+def hello_world():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    form = StudentForm()
+    if form.validate_on_submit():
+        student = Student(
+            firstname=form.firstname.data,
+            lastname=form.lastname.data,
+            email=form.email.data,
+            phone=form.phone.data
+        )
+        db.session.add(student)
+        db.session.commit()
+        flash("Student added successfully!", "success")
+        return redirect('/')
+    
+    allStudents = Student.query.all()
+    return render_template('index.html', allStudents=allStudents, form=form)
+# 404 Error handler
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('errors/404.html'), 404
+
+# 500 Error handler
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('errors/500.html'), 500
+
+if __name__ == '__main__':
+    with app.app_context():  # <--- Enter application context
+        db.create_all()      # Create tables if they don't exist
+    app.run(debug=True)

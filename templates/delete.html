@@ -1,0 +1,14 @@
+{% for s in allStudents %}
+<tr>
+  <td>{{ s.sno }}</td>
+  <td>{{ s.firstname }}</td>
+  <td>{{ s.lastname }}</td>
+  <td>{{ s.email }}</td>
+  <td>{{ s.phone }}</td>
+  <td>
+    <form action="{{ url_for('delete_student', sno=s.sno) }}" method="POST" style="display:inline;">
+      <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+    </form>
+  </td>
+</tr>
+{% endfor %}
